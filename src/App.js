@@ -6,6 +6,7 @@ import {v4 as uuid} from 'uuid'
 
 import {listNotes} from './graphql/queries'
 import {createNote as CreateNote, deleteNote as DeleteNote, updateNote as UpdateNote} from './graphql/mutations'
+import {onCreateNote} from './graphql/subscriptions'
 
 import { RESET_FORM, SET_INPUT, SET_NOTES, ADD_NOTE } from './Reduce/constants';
 import {reducer, initialState} from './Reduce/index.js'
@@ -25,9 +26,33 @@ const styles = {
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  const subscriber = API.graphql({
+      query: onCreateNote
+    }).subscribe({
+      next: noteData => {
+        const note = noteData.value.data.onCreateNote
+        if (CLIENT_ID === note.clientId) return
+        dispatch({type: ADD_NOTE, note})
+      }
+    })
+    return () => subscriber.unsubscribe()
+  }
+
   useEffect(() => {
     fetchNotes()
+    const subscriber = API.graphql({
+      query: onCreateNote
+    }).subscribe({
+      next: noteData => {
+        const note = noteData.value.data.onCreateNote
+        if (CLIENT_ID === note.clientId) return
+        dispatch({type: ADD_NOTE, note})
+      }
+    })
+    return () => subscriber.unsubscribe()
   }, [])
+
+  
 
   async function fetchNotes() {
     try {
