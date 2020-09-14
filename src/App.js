@@ -5,25 +5,20 @@ import {List, Input, Button} from 'antd';
 import {v4 as uuid} from 'uuid'
 
 import {listNotes} from './graphql/queries'
-import {createNote as CreateNote} from './graphql/mutations'
+import {createNote as CreateNote, deleteNote as DeleteNote, updateNote as UpdateNote} from './graphql/mutations'
 
+import { RESET_FORM, SET_INPUT, SET_NOTES, ADD_NOTE } from './Reduce/constants';
 import {reducer, initialState} from './Reduce/index.js'
 
 import 'antd/dist/antd.css'
-import { RESET_FORM, SET_INPUT } from './Reduce/constants';
 
-const initialState = {
-  notes: [],
-  loading: true,
-  error: false,
-  form: {name: '', description: ''}
-}
-
+const CLIENT_ID = uuid()
 const styles = {
   container: {padding: 20},
   input: {marginBottom: 10},
   item: {textAlign: 'left'},
-  p: {color: '#1890ff'}
+  p: {color: '#1890ff'},
+  erase: {color: '#FB8268', cursor: 'pointer'}
 }
 
 
@@ -65,13 +60,47 @@ function App() {
     }
   }
 
+  async function deleteNote({id}) {
+    const idx = state.notes.findIndex((n) => n.id === id)
+    const notes = [...state.notes.slice(0, idx), ...state.notes.slice(idx + 1)];
+
+    dispatch({ type: SET_NOTES, notes})
+    try {
+      await API.graphql({query: DeleteNote, variables: {input: {id}}})
+    } catch (err) {
+      console.log(err)
+    }
+  }
+
+  async function updateNote(note) {
+    const idx = state.notes.findIndex((n) => n.id === note.id)
+    const notes = [...state.notes]
+    notes[idx].completed = !note.completed
+    dispatch({ type: SET_NOTES, notes})
+
+    try {
+      await API.graphql({
+        query: UpdateNote,
+        variables: { input: {id: note.id, completed: notes[idx].completed}}
+      })
+      console.log('note has been updated')
+    } catch (err) {
+      console.log('error: ', err)
+    }
+  }
+
   function onChange(e) {
     dispatch({type: SET_INPUT, name: e.target.name, value: e.target.value})
   }
 
   function renderItem(item) {
     return (
-      <List.Item style={styles.item}>
+      <List.Item 
+        style={styles.item}
+        actions={[
+          <p style={styles.erase} onClick={() => deleteNote(item)}>Delete</p>,
+          <p style={styles.p} onClick={() => updateNote(item)}>{item.completed ? 'completed' : 'not completed'}</p>
+        ]}>
         <List.Item.Meta
           title={item.name}
           description={item.description}

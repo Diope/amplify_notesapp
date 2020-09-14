@@ -7,7 +7,7 @@ export const initialState = {
     form: {name: '', description: ''}
 }
 
-export function reducer(state, {type, notes, note}) {
+export function reducer(state, {type, notes, note, name, value}) {
     switch(type) {
         case SET_NOTES:
             return {...state, notes: notes, loading: false }
@@ -16,7 +16,7 @@ export function reducer(state, {type, notes, note}) {
         case RESET_FORM:
             return {...state, form: initialState.form}
         case SET_INPUT:
-                return {...state, form: {...state.form, [action.name]: action.value}}
+                return {...state, form: {...state.form, [name]: value}}
         case ERROR:
             return {...state, loading: false, error: true }
         default:
